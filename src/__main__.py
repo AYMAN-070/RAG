@@ -8,7 +8,12 @@ class RAGCLI:
         """
         Index the repository.
         """
-        print(f"Start indexation (max_chunk_size={max_chunk_size})...")
+        print(f"Starting indexation (max_chunk_size={max_chunk_size})...")
+        from .ingestion import DocumentProcessor
+        processor = DocumentProcessor(max_chunk_size=max_chunk_size)
+        # Ensure your raw data is extracted, for example in 'data/raw'
+        docs = processor.load_directory("data/raw") 
+        print(f"Found {len(docs)} files to process!")
 
     def search(self, query: str, k: int = 5) -> None:
         """
