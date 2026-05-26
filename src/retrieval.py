@@ -47,19 +47,17 @@ class Retriever:
         """
         Loads the previously saved index and chunks from the disk.
         """
-        index_path = f"{self.save_dir}/bm25_index"
+        index_path = os.path.join(self.save_dir, "bm25_index")
         chunks_path = os.path.join(self.save_dir, "chunks_data.json")
 
         if not os.path.exists(index_path) or not os.path.exists(chunks_path):
-            raise FileNotFoundError("Index not found. Please run 'index' command first.")
-
+            raise FileNotFoundError("Index not found. Please run 'index' "
+                                    "command first.")
         # Load the BM25 index
         self.index = bm25s.BM25.load(index_path, load_corpus=False)
-        
         # Load the chunks data
         with open(chunks_path, "r", encoding="utf-8") as f:
             loaded_chunks = json.load(f)
-            
         # Reconstruct the MinimalSource Pydantic objects
         self.chunks_data = []
         for c in loaded_chunks:
@@ -74,16 +72,10 @@ class Retriever:
         """
         if self.index is None:
             self.load_index()
-
-        # Tokenize the user's question
         query_tokens = bm25s.tokenize(query)
-
-        # Retrieve the top 'k' most relevant chunks
-        results_indices, _ = self.index.retrieve(query_tokens, corpus=None, k=k)
-        
-        # Results_indices is a 2D array, we take the first row (our only query)
-        top_indices = results_indices[0]
-
+        # Retrieve the top 'k' most relevant chunks(best proba score)
+        results_index, _ = self.index.retrieve(query_tokens, corpus=None, k=k)
+        top_indices = results_index[0]
         # Fetch the actual metadata for these top results
         retrieved_sources = []
         for idx in top_indices:
@@ -92,7 +84,7 @@ class Retriever:
 
         # Format the output using our Pydantic model
         return MinimalSearchResults(
-            question_id="temp_id", # We will manage real IDs later with datasets
+            question_id="temp_id",
             question=query,
             retrieved_sources=retrieved_sources
         )
