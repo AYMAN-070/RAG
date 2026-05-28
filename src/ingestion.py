@@ -86,8 +86,14 @@ class DocumentProcessor:
         return self._smart_chunk(text, file_path, separators)
 
     def process_documents(self, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Takes a list of loaded documents and applies the right
+        chunking strategy.
+        """
+        from tqdm import tqdm
         all_chunks = []
-        for doc in documents:
+        # add tqdm() around our documents lists
+        for doc in tqdm(documents, desc="Découpage des fichiers"):
             if doc["is_python"]:
                 chunks = self.chunk_python(doc["content"], doc["file_path"])
             else:

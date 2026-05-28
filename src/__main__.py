@@ -1,5 +1,5 @@
 import fire
-from typing import Optional
+
 
 class RAGCLI:
     """Interface en Ligne de Commande (CLI) pour le système RAG."""
@@ -14,6 +14,11 @@ class RAGCLI:
         # Ensure your raw data is extracted, for example in 'data/raw'
         docs = processor.load_directory("data/raw") 
         print(f"Found {len(docs)} files to process!")
+        chunks = processor.process_documents(docs)
+        print(f"Created {len(chunks)} chunks! Building index...")
+        from .retrieval import Retriever
+        retriever = Retriever()
+        retriever.build_and_save_index(chunks)
 
     def search(self, query: str, k: int = 5) -> None:
         """
@@ -21,7 +26,8 @@ class RAGCLI:
         """
         print(f"Recherche en cours pour : '{query}' (top {k})...")
 
-    def search_dataset(self, dataset_path: str, save_directory: str, k: int = 10) -> None:
+    def search_dataset(self, dataset_path: str, save_directory: str,
+                       k: int = 10) -> None:
         """
         Process multiple questions and output search results.
         """
@@ -40,7 +46,8 @@ class RAGCLI:
         retriever = Retriever()
         retriever.load_index()
         all_results = []
-        print(f"Launch of the search for {len(dataset.rag_questions)} questions...")
+        print(f"Launch of the search for {len(dataset.rag_questions)} "
+              f"questions...")
         # 4. CREAT chargingn bar
         for item in tqdm(dataset.rag_questions, desc="Recherche en cours"):
             result = retriever.search(item.question, k=k)
@@ -89,17 +96,100 @@ class RAGCLI:
                   f"à {source.last_character_index})")
         print("-"*50 + "\n")
 
-    def answer_dataset(self, student_search_results_path: str, save_directory: str) -> None:
-        """
-        Generate answers from search results.
-        """
-        print(f"Génération des réponses pour le dataset {student_search_results_path}...")
-
-    def evaluate(self, student_answer_path: str, dataset_path: str, k: int = 10, max_context_length: int = 2000) -> None:
+    def evaluate(self, student_answer_path: str, dataset_path: str,
+                 k: int = 10, max_context_length: int = 2000) -> None:
         """
         Evaluate search results against ground truth.
         """
-        print("Évaluation des résultats en cours...")
+        import os
+        import json
+        print("\nEvaluating results...")
+        print(f"Analyzing file: {student_answer_path}")
+        # Trick: We use the variables here to satisfy Flake8
+        print(f"Reference: {dataset_path} | k={k} | max_len={max_context_length}")
+        if not os.path.exists(student_answer_path):
+            print("❌ Error: Answer file not found. "
+                  "Launch 'answer_dataset' first.")
+            return
+        with open(student_answer_path, "r", encoding="utf-8") as f:
+            answers = json.load(f)
+        total_questions = len(answers)
+        valid_answers = 0
+        total_length = 0
+        hallucination_suspicions = 0
+        for item in answers:
+            answer_text = item.get("answer", "")
+            if answer_text and len(answer_text.strip()) > 5:
+                valid_answers += 1
+                total_length += len(answer_text) 
+                # We break the long condition into multiple lines
+                is_hallucinating = (
+                    "I don't know" in answer_text or 
+                    "not in the context" in answer_text
+                )
+                if is_hallucinating:
+                    hallucination_suspicions += 1
+        # We break down math calculations to avoid long lines
+        if total_questions > 0:
+            success_rate = (valid_answers / total_questions) * 100
+        else:
+            success_rate = 0
+        if valid_answers > 0:
+            avg_length = total_length // valid_answers
+        else:
+            avg_length = 0
+        print("\n" + "="*50)
+        print("RAG SYSTEM EVALUATION REPORT")
+        print("="*50)
+        print(f"Processed questions     : {total_questions}")
+        print(f"Valid answers generated : {valid_answers} "
+              f"({success_rate:.1f}%)")
+        print(f"Average length/answer   : {avg_length} characters")
+        print(f"Unanswered questions    : {hallucination_suspicions} "
+              "(AI admitted not knowing)")
+        print("="*50)
+        if success_rate == 100:
+            print("🌟 Excellent! Your system successfully answered "
+                  "all questions.")
+        else:
+            print("⚠️ Warning: Some questions did not "
+                  "get a valid answer.")
+        print("\n")
+
+    def answer_dataset(self, student_search_results_path: str,
+                       save_directory: str) -> None:
+        """
+        Generate answers from search results.
+        """
+        import os
+        import json
+        from tqdm import tqdm
+        from .generation import AnswerGenerator
+        from .models import StudentSearchResults
+        print(f"Loading results from {student_search_results_path}...")
+        with open(student_search_results_path, "r", encoding="utf-8") as f:
+            raw_data = json.load(f)
+        search_dataset = StudentSearchResults(**raw_data)
+        generator = AnswerGenerator()
+        final_answers = []
+        total_q = len(search_dataset.search_results)
+        print(f"Launching generation for {total_q} questions...")
+        # The magic loop with the tqdm progress bar
+        for search_result in tqdm(search_dataset.search_results,
+                                  desc="Generating answers"):
+            answer = generator.generate(search_result)
+            # ---> THE BUG FIX IS HERE <---
+            # We append the generated answer to our final list
+            final_answers.append(answer.model_dump())
+        os.makedirs(save_directory, exist_ok=True)
+        # We break the filename manipulation into two lines for Flake8
+        base_name = os.path.basename(student_search_results_path)
+        filename = base_name.replace("search_results", "answers")
+        save_path = os.path.join(save_directory, f"final_answers_{filename}")
+        with open(save_path, "w", encoding="utf-8") as f:
+            json.dump(final_answers, f, indent=2, ensure_ascii=False)
+        print(f"\nDONE! All answers are saved in {save_path}")
+
 
 if __name__ == '__main__':
     fire.Fire(RAGCLI)
