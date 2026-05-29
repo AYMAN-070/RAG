@@ -48,7 +48,8 @@ class AnswerGenerator:
                 with open(source.file_path, "r", encoding="utf-8") as f:
                     full_content = f.read()
                     actual_text = full_content[source.first_character_index:source.last_character_index]
-                    text_snippet = f"Source ({source.file_path}):\n{actual_text}\n"
+                    text_snippet = (f"Source ({source.file_path}):\n"
+                                    f"{actual_text}\n")
             except Exception:
                 text_snippet = f"Source ({source.file_path}): can't read.\n"
             if current_length + len(text_snippet) > max_context_length:

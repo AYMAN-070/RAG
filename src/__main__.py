@@ -11,7 +11,7 @@ class RAGCLI:
         print(f"Starting indexation (max_chunk_size={max_chunk_size})...")
         from .ingestion import DocumentProcessor
         processor = DocumentProcessor(max_chunk_size=max_chunk_size)
-        # Ensure your raw data is extracted, for example in 'data/raw'
+        # Ensure raw data is extracted, for example in 'data/raw'
         docs = processor.load_directory("data/raw") 
         print(f"Found {len(docs)} files to process!")
         chunks = processor.process_documents(docs)
@@ -24,18 +24,18 @@ class RAGCLI:
         """
         Search for a single query using the BM25 index.
         """
-        print(f"\n🔍 Searching for: '{query}' (top {k})...")
+        print(f"\nSearching for: '{query}' (top {k})...")
         from .retrieval import Retriever
         try:
-            # Wake up the Retriever (The Librarian)
+            # Wake up the Retriever
             retriever = Retriever()
-            # Open the math catalog (Load the saved BM25 index)
+            # Load the saved BM25 index
             retriever.load_index()
             # Search for the best text chunks
             results = retriever.search(query, k=k)
             # Check if anything was found
             if not results.retrieved_sources:
-                print("⚠️ No relevant documents were found.")
+                print("No relevant documents were found.")
                 return
             # 5. Display a clean report in the terminal
             print("\n" + "="*50)
@@ -43,15 +43,15 @@ class RAGCLI:
             print("="*50)
             for i, source in enumerate(results.retrieved_sources, 1):
                 print(f"Result {i}:")
-                print(f"📍 File: {source.file_path}")
-                print(f"📏 Position: Characters {source.first_character_index} "
+                print(f"File: {source.file_path}")
+                print(f"Position: Characters {source.first_character_index} "
                       f"to {source.last_character_index}")
                 print("-" * 40)
             print("\n")
         except FileNotFoundError:
             # Safety catch: If the user forgot to run 'index' first
-            print("❌ Error: BM25 index not found.")
-            print("💡 Tip: Run the 'index' command first to analyze the files.")
+            print("Error: BM25 index not found.")
+            print("Tip: Run the 'index' command first to analyze the files")
 
     def search_dataset(self, dataset_path: str, save_directory: str,
                        k: int = 10) -> None:
@@ -76,7 +76,7 @@ class RAGCLI:
         print(f"Launch of the search for {len(dataset.rag_questions)} "
               f"questions...")
         # 4. CREAT chargingn bar
-        for item in tqdm(dataset.rag_questions, desc="Recherche en cours"):
+        for item in tqdm(dataset.rag_questions, desc="Seaching..."):
             result = retriever.search(item.question, k=k)
             result.question_id = item.question_id
             all_results.append(result)
@@ -90,14 +90,14 @@ class RAGCLI:
         save_path = os.path.join(save_directory, filename)
         with open(save_path, "w", encoding="utf-8") as f:
             f.write(final_output.model_dump_json(indent=2))
-        print(f"\nRecherche terminée ! Résultats sauvegardés dans {save_path}")
+        print(f"\nEnd searching! Results saved in {save_path}")
 
     def answer(self, query: str, k: int = 5) -> None:
         """
         Generat an answer using AI and Documents.
         """
-        print(f"\nQuestion posée : '{query}'")
-        print("1. Recherche des documents en cours (BM25)...")
+        print(f"\nQuestion  : '{query}'")
+        print("1. Looking for documents (BM25)...")
         from .retrieval import Retriever
         from .generation import AnswerGenerator
         retriever = Retriever()
@@ -132,8 +132,9 @@ class RAGCLI:
         import json
         print("\nEvaluating results...")
         print(f"Analyzing file: {student_answer_path}")
-        # Trick: We use the variables here to satisfy Flake8
-        print(f"Reference: {dataset_path} | k={k} | max_len={max_context_length}")
+        # We use the variables here to satisfy Flake8
+        print(f"Reference: {dataset_path} | k={k} | "
+              f" max_len={max_context_length}")
         if not os.path.exists(student_answer_path):
             print("❌ Error: Answer file not found. "
                   "Launch 'answer_dataset' first.")
@@ -205,7 +206,6 @@ class RAGCLI:
         for search_result in tqdm(search_dataset.search_results,
                                   desc="Generating answers"):
             answer = generator.generate(search_result)
-            # ---> THE BUG FIX IS HERE <---
             # We append the generated answer to our final list
             final_answers.append(answer.model_dump())
         os.makedirs(save_directory, exist_ok=True)
