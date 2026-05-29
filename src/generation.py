@@ -7,8 +7,10 @@ class AnswerGenerator:
         """
         Initialise IA model.
         """
-        print(f"Chargement du modèle LLM : {model_name}...")
+        print(f"Charging LLM model: {model_name}...")
+        # Tokenizer make IA understand words by split them into numbers
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        # make IA prupose to guess rh next word, device_map to use GPU
         self.model = AutoModelForCausalLM.from_pretrained(model_name,
                                                           device_map="auto")
         # creat a "pipeline" to generat text
@@ -35,7 +37,7 @@ class AnswerGenerator:
         return prompt
 
     def generate(self, search_results: MinimalSearchResults,
-                 max_context_length: int = 2000) -> MinimalAnswer:
+                 max_context_length: int = 12000) -> MinimalAnswer:
         """
         Take results and creat a text.
         """

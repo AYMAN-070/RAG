@@ -4,6 +4,7 @@ import bm25s
 from typing import List, Dict, Any
 from .models import MinimalSource, MinimalSearchResults
 
+
 class Retriever:
     def __init__(self, save_dir: str = "data/processed"):
         """

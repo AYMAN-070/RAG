@@ -22,9 +22,36 @@ class RAGCLI:
 
     def search(self, query: str, k: int = 5) -> None:
         """
-        Search for a single query.
+        Search for a single query using the BM25 index.
         """
-        print(f"Recherche en cours pour : '{query}' (top {k})...")
+        print(f"\n🔍 Searching for: '{query}' (top {k})...")
+        from .retrieval import Retriever
+        try:
+            # Wake up the Retriever (The Librarian)
+            retriever = Retriever()
+            # Open the math catalog (Load the saved BM25 index)
+            retriever.load_index()
+            # Search for the best text chunks
+            results = retriever.search(query, k=k)
+            # Check if anything was found
+            if not results.retrieved_sources:
+                print("⚠️ No relevant documents were found.")
+                return
+            # 5. Display a clean report in the terminal
+            print("\n" + "="*50)
+            print(f"SEARCH RESULTS (Top {k})")
+            print("="*50)
+            for i, source in enumerate(results.retrieved_sources, 1):
+                print(f"Result {i}:")
+                print(f"📍 File: {source.file_path}")
+                print(f"📏 Position: Characters {source.first_character_index} "
+                      f"to {source.last_character_index}")
+                print("-" * 40)
+            print("\n")
+        except FileNotFoundError:
+            # Safety catch: If the user forgot to run 'index' first
+            print("❌ Error: BM25 index not found.")
+            print("💡 Tip: Run the 'index' command first to analyze the files.")
 
     def search_dataset(self, dataset_path: str, save_directory: str,
                        k: int = 10) -> None:

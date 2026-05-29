@@ -72,7 +72,6 @@ class DocumentProcessor:
     def chunk_text(self, text: str, file_path: str) -> List[Dict[str, Any]]:
         """
         Chunking strategy for Markdown/Text.
-        Prioritizes splitting by double newline, single newline, period, then space.
         """
         separators = ["\n\n", "\n", ". ", " "]
         return self._smart_chunk(text, file_path, separators)
@@ -85,7 +84,8 @@ class DocumentProcessor:
         separators = ["\nclass ", "\ndef ", "\n\n", "\n"]
         return self._smart_chunk(text, file_path, separators)
 
-    def process_documents(self, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def process_documents(self, documents: List[Dict[str, Any]]
+                          ) -> List[Dict[str, Any]]:
         """
         Takes a list of loaded documents and applies the right
         chunking strategy.
@@ -93,7 +93,7 @@ class DocumentProcessor:
         from tqdm import tqdm
         all_chunks = []
         # add tqdm() around our documents lists
-        for doc in tqdm(documents, desc="Découpage des fichiers"):
+        for doc in tqdm(documents, desc="File splitting"):
             if doc["is_python"]:
                 chunks = self.chunk_python(doc["content"], doc["file_path"])
             else:
