@@ -11,8 +11,8 @@ class Retriever:
         save_dir is where we store the index and the chunks on the hard drive.
         """
         self.save_dir = save_dir
-        self.index = None
-        self.chunks_data = []
+        self.index: Any = None
+        self.chunks_data: List[Dict[str, Any]] = []
 
     def build_and_save_index(self, chunks: List[Dict[str, Any]]) -> None:
         """

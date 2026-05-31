@@ -47,7 +47,10 @@ class AnswerGenerator:
             try:
                 with open(source.file_path, "r", encoding="utf-8") as f:
                     full_content = f.read()
-                    actual_text = full_content[source.first_character_index:source.last_character_index]
+                    actual_text = full_content[
+                        source.first_character_index:
+                        source.last_character_index
+                        ]
                     text_snippet = (f"Source ({source.file_path}):\n"
                                     f"{actual_text}\n")
             except Exception:

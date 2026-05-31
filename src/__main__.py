@@ -12,7 +12,7 @@ class RAGCLI:
         from .ingestion import DocumentProcessor
         processor = DocumentProcessor(max_chunk_size=max_chunk_size)
         # Ensure raw data is extracted, for example in 'data/raw'
-        docs = processor.load_directory("data/raw") 
+        docs = processor.load_directory("data/raw")
         print(f"Found {len(docs)} files to process!")
         chunks = processor.process_documents(docs)
         print(f"Created {len(chunks)} chunks! Building index...")
@@ -136,7 +136,7 @@ class RAGCLI:
         print(f"Reference: {dataset_path} | k={k} | "
               f" max_len={max_context_length}")
         if not os.path.exists(student_answer_path):
-            print("❌ Error: Answer file not found. "
+            print("Error: Answer file not found. "
                   "Launch 'answer_dataset' first.")
             return
         with open(student_answer_path, "r", encoding="utf-8") as f:
@@ -149,10 +149,9 @@ class RAGCLI:
             answer_text = item.get("answer", "")
             if answer_text and len(answer_text.strip()) > 5:
                 valid_answers += 1
-                total_length += len(answer_text) 
-                # We break the long condition into multiple lines
+                total_length += len(answer_text)
                 is_hallucinating = (
-                    "I don't know" in answer_text or 
+                    "I don't know" in answer_text or
                     "not in the context" in answer_text
                 )
                 if is_hallucinating:
@@ -177,10 +176,10 @@ class RAGCLI:
               "(AI admitted not knowing)")
         print("="*50)
         if success_rate == 100:
-            print("🌟 Excellent! Your system successfully answered "
+            print("Excellent! Your system successfully answered "
                   "all questions.")
         else:
-            print("⚠️ Warning: Some questions did not "
+            print("Warning: Some questions did not "
                   "get a valid answer.")
         print("\n")
 
@@ -209,7 +208,6 @@ class RAGCLI:
             # We append the generated answer to our final list
             final_answers.append(answer.model_dump())
         os.makedirs(save_directory, exist_ok=True)
-        # We break the filename manipulation into two lines for Flake8
         base_name = os.path.basename(student_search_results_path)
         filename = base_name.replace("search_results", "answers")
         save_path = os.path.join(save_directory, f"final_answers_{filename}")
