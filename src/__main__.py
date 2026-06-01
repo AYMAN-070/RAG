@@ -123,66 +123,6 @@ class RAGCLI:
                   f"à {source.last_character_index})")
         print("-"*50 + "\n")
 
-    def evaluate(self, student_answer_path: str, dataset_path: str,
-                 k: int = 10, max_context_length: int = 2000) -> None:
-        """
-        Evaluate search results against ground truth.
-        """
-        import os
-        import json
-        print("\nEvaluating results...")
-        print(f"Analyzing file: {student_answer_path}")
-        # We use the variables here to satisfy Flake8
-        print(f"Reference: {dataset_path} | k={k} | "
-              f" max_len={max_context_length}")
-        if not os.path.exists(student_answer_path):
-            print("Error: Answer file not found. "
-                  "Launch 'answer_dataset' first.")
-            return
-        with open(student_answer_path, "r", encoding="utf-8") as f:
-            answers = json.load(f)
-        total_questions = len(answers)
-        valid_answers = 0
-        total_length = 0
-        hallucination_suspicions = 0
-        for item in answers:
-            answer_text = item.get("answer", "")
-            if answer_text and len(answer_text.strip()) > 5:
-                valid_answers += 1
-                total_length += len(answer_text)
-                is_hallucinating = (
-                    "I don't know" in answer_text or
-                    "not in the context" in answer_text
-                )
-                if is_hallucinating:
-                    hallucination_suspicions += 1
-        # We break down math calculations to avoid long lines
-        if total_questions > 0:
-            success_rate = (valid_answers / total_questions) * 100
-        else:
-            success_rate = 0
-        if valid_answers > 0:
-            avg_length = total_length // valid_answers
-        else:
-            avg_length = 0
-        print("\n" + "="*50)
-        print("RAG SYSTEM EVALUATION REPORT")
-        print("="*50)
-        print(f"Processed questions     : {total_questions}")
-        print(f"Valid answers generated : {valid_answers} "
-              f"({success_rate:.1f}%)")
-        print(f"Average length/answer   : {avg_length} characters")
-        print(f"Unanswered questions    : {hallucination_suspicions} "
-              "(AI admitted not knowing)")
-        print("="*50)
-        if success_rate == 100:
-            print("Excellent! Your system successfully answered "
-                  "all questions.")
-        else:
-            print("Warning: Some questions did not "
-                  "get a valid answer.")
-        print("\n")
-
     def answer_dataset(self, student_search_results_path: str,
                        save_directory: str) -> None:
         """
@@ -214,6 +154,118 @@ class RAGCLI:
         with open(save_path, "w", encoding="utf-8") as f:
             json.dump(final_answers, f, indent=2, ensure_ascii=False)
         print(f"\nDONE! All answers are saved in {save_path}")
+
+    def calculate_overlap_percentage(self, retrieved_start: int,
+                                     retrieved_end: int,
+                                     correct_start: int,
+                                     correct_end: int) -> float:
+        """Calculates overlap percentage between retrieved chunk and truth."""
+        # find intersection of two segments
+        overlap_start = max(retrieved_start, correct_start)
+        overlap_end = min(retrieved_end, correct_end)
+        # Calculat length of overlap
+        overlap_length = max(0, overlap_end - overlap_start)
+        # Calculat length of main source
+        correct_length = correct_end - correct_start
+        if correct_length == 0:
+            return 0.0
+        # Return percentage
+        return overlap_length / correct_length
+
+    def evaluate(self, student_answer_path: str, dataset_path: str,
+                 k: int = 10, max_context_length: int = 2000) -> None:
+        """
+        Evaluate search results against ground truth.
+        """
+        import os
+        import json
+        print("\nEvaluating results...")
+        print(f"Analyzing file: {student_answer_path}")
+        # We use the variables here to satisfy Flake8
+        print(f"Reference: {dataset_path} | k={k} | "
+              f" max_len={max_context_length}")
+        if not os.path.exists(student_answer_path):
+            print("Error: Answer file not found. "
+                  "Launch 'answer_dataset' first.")
+            return
+        with open(student_answer_path, "r", encoding="utf-8") as f:
+            answers = json.load(f)
+        with open(dataset_path, "r", encoding="utf-8") as f:
+            correct_dataset = json.load(f)
+            correct_questions = correct_dataset.get("rag_questions",
+                                                    correct_dataset)
+        total_recall_score = 0.0
+        total_questions = len(answers)
+        valid_answers = 0
+        total_length = 0
+        hallucination_suspicions = 0
+        for item in answers:
+            answer_text = item.get("answer", "")
+            if answer_text and len(answer_text.strip()) > 5:
+                valid_answers += 1
+                total_length += len(answer_text)
+                is_hallucinating = (
+                    "I don't know" in answer_text or
+                    "not in the context" in answer_text
+                )
+                if is_hallucinating:
+                    hallucination_suspicions += 1
+            q_id = item.get("question_id")
+        # We break down math calculations to avoid long lines
+        correct_q = next((q for q in correct_questions
+                          if q.get("question_id") == q_id), None)
+        if correct_q:
+            correct_sources = correct_q.get("sources", [])
+            retrieved_sources = item.get("retrieved_sources", [])
+            sources_found = 0
+
+            for correct_src in correct_sources:
+                for ret_src in retrieved_sources:
+                    # if same file we verify overlap
+                    ret_path = ret_src.get("file_path")
+                    correct_path = correct_src.get("file_path")
+                    if ret_path and ret_path == correct_path:
+                        overlap = self.calculate_overlap_percentage(
+                            ret_src.get("first_character_index", 0),
+                            ret_src.get("last_character_index", 0),
+                            correct_src.get("first_character_index", 0),
+                            correct_src.get("last_character_index", 0)
+                        )
+                        if overlap >= 0.05:
+                            sources_found += 1
+                            break
+            if len(correct_sources) > 0:
+                total_recall_score += (sources_found / len(correct_sources))
+        # We break down math calculations to avoid long lines
+        if total_questions > 0:
+            success_rate = (valid_answers / total_questions) * 100
+            final_recall = (total_recall_score / total_questions) * 100
+        else:
+            success_rate = 0
+            final_recall = 0
+        if valid_answers > 0:
+            avg_length = total_length // valid_answers
+        else:
+            avg_length = 0
+        print("\n" + "="*50)
+        print("RAG SYSTEM EVALUATION REPORT")
+        print("="*50)
+        print(f"Processed questions     : {total_questions}")
+        print(f"Valid answers generated : {valid_answers} "
+              f"({success_rate:.1f}%)")
+        print(f"Average length/answer   : {avg_length} characters")
+        print(f"Unanswered questions    : {hallucination_suspicions} "
+              "(AI admitted not knowing)")
+        print("-" * 50)
+        print(f"SYSTEM RECALL SCORE  : {final_recall:.1f}%")
+        print("="*50)
+        if success_rate == 100:
+            print("Excellent! Your system successfully answered "
+                  "all questions.")
+        else:
+            print("Warning: Some questions did not "
+                  "get a valid answer.")
+        print("\n")
 
 
 if __name__ == '__main__':
