@@ -86,6 +86,6 @@ class Retriever:
         # Format the output using our Pydantic model
         return MinimalSearchResults(
             question_id="temp_id",
-            question=query,
+            question_str=query,
             retrieved_sources=retrieved_sources
         )
