@@ -71,6 +71,12 @@ class Retriever:
         """
         Searches the index for the query and returns the top k results.
         """
+        if not query.strip():
+            return MinimalSearchResults(
+                question_id="00000000-0000-0000-0000-000000000000",
+                question_str=query,
+                retrieved_sources=[]
+            )
         if self.index is None:
             self.load_index()
         query_tokens = bm25s.tokenize(query)

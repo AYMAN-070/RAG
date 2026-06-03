@@ -65,8 +65,15 @@ class RAGCLI:
         from .models import RagDataset, StudentSearchResults
         print(f"Charging dataset from {dataset_path}...")
         # Open JSON file for questions
-        with open(dataset_path, "r", encoding="utf-8") as f:
-            raw_data = json.load(f)
+        try:
+            with open(dataset_path, "r", encoding="utf-8") as f:
+                raw_data = json.load(f)
+        except FileNotFoundError:
+            print(f"Error: The file '{dataset_path}' does not exist.")
+            return
+        except json.JSONDecodeError:
+            print(f"Error: The file '{dataset_path}' is not a valid JSON.")
+            return
         # Validat all dataset !
         dataset = RagDataset(**raw_data)
         # Préparation du moteur de recherche
