@@ -96,6 +96,14 @@ class DocumentProcessor:
         for doc in tqdm(documents, desc="File splitting"):
             if doc["is_python"]:
                 chunks = self.chunk_python(doc["content"], doc["file_path"])
+                for c in chunks:
+                    clean_text = c["content"].replace("(", " ")
+                    clean_text = c["content"].replace(")", " ")
+                    clean_text = c["content"].replace(":", " ")
+                    snake_words = [w for w in clean_text.split() if "_" in w]
+                    if snake_words:
+                        clean_words = " ".join(snake_words).replace("_", " ")
+                        c["content"] = c["content"] + "\n# " + clean_words
             else:
                 chunks = self.chunk_text(doc["content"], doc["file_path"])
             all_chunks.extend(chunks)

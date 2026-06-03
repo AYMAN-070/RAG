@@ -60,10 +60,10 @@ class AnswerGenerator:
             context_parts.append(text_snippet)
             current_length += len(text_snippet)
         full_context = "\n---\n".join(context_parts)
-        prompt = self._build_prompt(question=search_results.question,
+        prompt = self._build_prompt(question=search_results.question_str,
                                     context=full_context)
         print(f"L'IA reading documents and analyse the question : "
-              f"'{search_results.question}'...")
+              f"'{search_results.question_str}'...")
         output = self.generator(prompt)
         generated_text = output[0]["generated_text"].strip()
         if "\n" in generated_text:
@@ -75,7 +75,7 @@ class AnswerGenerator:
             generated_text = generated_text.replace("Answer:", "").strip()
         return MinimalAnswer(
             question_id=search_results.question_id,
-            question=search_results.question,
+            question=search_results.question_str,
             retrieved_sources=search_results.retrieved_sources,
             answer=generated_text
         )
