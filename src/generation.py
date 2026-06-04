@@ -75,7 +75,7 @@ class AnswerGenerator:
             generated_text = generated_text.replace("Answer:", "").strip()
         return MinimalAnswer(
             question_id=search_results.question_id,
-            question=search_results.question_str,
+            question_str=search_results.question_str,
             retrieved_sources=search_results.retrieved_sources,
             answer=generated_text
         )
