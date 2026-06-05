@@ -71,15 +71,19 @@ class AnswerGenerator:
         generated_text = output[0]["generated_text"].strip()
         if "</think>" in generated_text:
             generated_text = generated_text.split("</think>")[-1]
-        generated_text = generated_text.replace("```python", "").replace("```py", "").replace("```", "")
+        generated_text = (
+            generated_text.replace("```python", "")
+            .replace("```py", "")
+            .replace("```", "")
+        )
         # List of words Qwen use
         bavardages = [
-            "\nAnswer:", 
-            "\n**Final Answer**", 
-            "\nSo according to", 
-            "\nSo,", 
-            "\nTherefore,", 
-            "\nBut since", 
+            "\nAnswer:",
+            "\n**Final Answer**",
+            "\nSo according to",
+            "\nSo,",
+            "\nTherefore,",
+            "\nBut since",
             "**Answer**",
             "The answer is:"
         ]
