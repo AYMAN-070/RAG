@@ -18,21 +18,24 @@ class AnswerGenerator:
             "text-generation",
             model=self.model,
             tokenizer=self.tokenizer,
-            max_new_tokens=200,
+            max_new_tokens=150,
             clean_up_tokenization_spaces=False,
-            return_full_text=False
+            return_full_text=False,
+            repetition_penalty=1.15
         )
 
     def _build_prompt(self, question: str, context: str) -> str:
         """
         IA instructions """
         prompt = (
-            "You are an expert coding assistant. Answer the user's question"
-            "based ONLY on the provided context. If the answer is not in the "
-            "context, say 'I don't know'.\n\n"
+            "You are an expert coding assistant."
+            "You MUST strictly follow these 2 rules:\n"
+            "1. Answer the question based ONLY on the provided context.\n"
+            "2. Your answer MUST be self-contained " 
+            "(restate the subject of the question in your first sentence).\n\n"
             f"Context:\n{context}\n\n"
             f"Question: {question}\n\n"
-            "Answer:"
+            "Self-contained Answer:"
         )
         return prompt
 
@@ -66,13 +69,18 @@ class AnswerGenerator:
               f"'{search_results.question_str}'...")
         output = self.generator(prompt)
         generated_text = output[0]["generated_text"].strip()
-        if "\n" in generated_text:
-            generated_text = generated_text.split("\n")[0]
         if '"""' in generated_text:
             generated_text = generated_text.split('"""')[0]
         # if IA add "Answer: " in the beginning, we delete it
         if generated_text.startswith("Answer:"):
             generated_text = generated_text.replace("Answer:", "").strip()
+        if "**Answer**" in generated_text:
+            generated_text = generated_text.split("**Answer**")[-1]
+        if "</think>" in generated_text:
+            generated_text = generated_text.split("</think>")[-1]
+        if "The answer is:" in generated_text:
+            generated_text = generated_text.split("The answer is:")[0].strip()
+        generated_text = generated_text.strip()
         return MinimalAnswer(
             question_id=search_results.question_id,
             question_str=search_results.question_str,
