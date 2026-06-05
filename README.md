@@ -28,6 +28,22 @@ The system was evaluated using a strict Recall@k metric.
 - **CLI Framework:** We used Google's `fire` library to expose the Python classes seamlessly to the command line.
 - **Makefile:** A Makefile is included to automate the `uv` virtual environment workflows, making testing and execution highly streamlined.
 
+## ⚠️ Important : Environnements contraints (ex: iMacs École 42)
+
+Ce projet télécharge des dépendances lourdes (PyTorch, CUDA) ainsi qu'un modèle de langage (Qwen3-0.6B : ~1.5 Go). Dans les environnements scolaires où le dossier `/home/` possède un quota strict, l'installation ou la génération plantera avec une erreur `No space left on device (os error 28)`.
+
+Pour éviter cela, il est **fortement recommandé** de rediriger le cache vers votre espace de stockage externe (ex: `sgoinfre`) avant de lancer les commandes.
+
+Exécutez ces lignes dans votre terminal pour configurer votre environnement :
+
+# 1. Créer les dossiers de cache dans l'espace non restreint
+mkdir -p /sgoinfre/$USER/.uv_cache
+mkdir -p /sgoinfre/$USER/.huggingface_cache
+
+# 2. Exporter les variables pour forcer la redirection
+export UV_CACHE_DIR="/sgoinfre/$USER/.uv_cache"
+export HF_HOME="/sgoinfre/$USER/.huggingface_cache" 
+
 ## Challenges Faced
 - **Disk Space / Environment Setup:** Installing the heavy Machine Learning dependencies (`torch`, `triton`) initially caused `os error 28 (No space left on device)` in the standard `/home` directory. This was solved by configuring the `uv` cache to target the `sgoinfre` partition and utilizing CPU-only PyTorch wheels for local development and testing.
 - **Context Length Limits:** Balancing the `k` parameter (number of
