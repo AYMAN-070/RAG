@@ -35,7 +35,7 @@ class AnswerGenerator:
             "(restate the subject of the question in your first sentence).\n\n"
             f"Context:\n{context}\n\n"
             f"Question: {question}\n\n"
-            "Self-contained Answer:"
+            "Direct self-contained answer:"
         )
         return prompt
 
@@ -69,17 +69,25 @@ class AnswerGenerator:
               f"'{search_results.question_str}'...")
         output = self.generator(prompt)
         generated_text = output[0]["generated_text"].strip()
-        if '"""' in generated_text:
-            generated_text = generated_text.split('"""')[0]
-        # if IA add "Answer: " in the beginning, we delete it
-        if generated_text.startswith("Answer:"):
-            generated_text = generated_text.replace("Answer:", "").strip()
-        if "**Answer**" in generated_text:
-            generated_text = generated_text.split("**Answer**")[-1]
         if "</think>" in generated_text:
             generated_text = generated_text.split("</think>")[-1]
-        if "The answer is:" in generated_text:
-            generated_text = generated_text.split("The answer is:")[0].strip()
+        generated_text = generated_text.replace("```python", "").replace("```py", "").replace("```", "")
+        # List of words Qwen use
+        bavardages = [
+            "\nAnswer:", 
+            "\n**Final Answer**", 
+            "\nSo according to", 
+            "\nSo,", 
+            "\nTherefore,", 
+            "\nBut since", 
+            "**Answer**",
+            "The answer is:"
+        ]
+        # Cut text when we met one of these words
+        for mot_interdit in bavardages:
+            if mot_interdit in generated_text:
+                generated_text = generated_text.split(mot_interdit)[0]
+        # Clean the rest
         generated_text = generated_text.strip()
         return MinimalAnswer(
             question_id=search_results.question_id,
