@@ -67,7 +67,8 @@ class Retriever:
                 "metadata": MinimalSource(**c["metadata"])
             })
 
-    def search(self, query: str, k: int = 5) -> MinimalSearchResults:
+    def search(self, query: str, k: int = 5,
+               use_expansion: bool = False) -> MinimalSearchResults:
         """
         Searches the index for the query and returns the top k results.
         """
@@ -79,7 +80,20 @@ class Retriever:
             )
         if self.index is None:
             self.load_index()
-        query_tokens = bm25s.tokenize(query)
+        search_query = query
+        if use_expansion:
+            expanded_query = query.lower()
+            synonyms = {
+                "start": "launch run init boot initialize",
+                "error": "bug exception crash fail traceback",
+                "config": "settings setup configuration yaml toml",
+                "model": "llm qwen weights checkpoint",
+                "fast": "speed optimize performance throughput latency"
+            }
+            for word, syns in synonyms.items():
+                if word in expanded_query:
+                    search_query += f" {syns}"
+        query_tokens = bm25s.tokenize(search_query)
         # Retrieve the top 'k' most relevant chunks(best proba score)
         results_index, _ = self.index.retrieve(query_tokens, corpus=None, k=k)
         top_indices = results_index[0]
